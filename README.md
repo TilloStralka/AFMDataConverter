@@ -1,6 +1,5 @@
 # AFM_Data_Fusion
-Finding tiffs and gwys in folder, extracting time of measurement, assembling  them in gwy file with multible dataframe container 
-
+Finding tiff and gwy files in folder, extracting time of measurement, assembling  them in gwy file with multible dataframes in a container. Therefore the dataframes can be used for correlation analysis. For this purpose, see other repository [Current_AFM_AutoScript]( https://github.com/TilloStralka/Current_AFM_AutoScript)
 
 # Environment Setup and Issues
 
@@ -26,7 +25,7 @@ Download and install Docker or Docker Desktop from [Docker's official site](http
 ### **2.A The more simple version is to use docker command line interface** 
 Not a docker image / container to download yet. 
 ```bash
-docker https://github.com/TilloStralka/AFMDataConverter
+docker pull https://github.com/TilloStralka/AFMDataConverter
 ```
 
 ### **2.B The more complex version is to use the docker image from the repository**
