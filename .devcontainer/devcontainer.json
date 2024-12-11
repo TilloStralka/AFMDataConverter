@@ -1,0 +1,13 @@
+{
+    "name": "Gwyddion Python Container",
+    "dockerFile": "Dockerfile",
+    "context": "..",
+    "settings": {
+      "python.defaultInterpreterPath": "/usr/bin/python2.7"
+    },
+    "extensions": [
+      "ms-python.python",
+      "ms-toolsai.jupyter"
+    ],
+    "remoteUser": "root"
+  }
