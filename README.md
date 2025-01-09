@@ -23,7 +23,7 @@ Download and install Docker or Docker Desktop from [Docker's official site](http
 
 
 ### **2.A The more simple version is to use docker command line interface** 
-Not a docker image / container to download yet. 
+Not a docker image / container to download YET!!!. 
 ```bash
 docker pull https://github.com/TilloStralka/AFMDataConverter
 ```
@@ -100,9 +100,27 @@ When selecting "Dev Containers: Rebuild and Reopen in Container", the building p
 
 **Important:** Always prefix your Python commands with xvfb-run:
 ```bash
-xvfb-run python program_name.py
+xvfb-run python Converter.py
 ```
 
+There seems to be a problem with the installation of the python packages. The packages are not installed correctly and the program crashes. 
+The output indicates that Python is resolving the backports namespace to /usr/lib/python2.7/dist-packages/backports rather than /usr/local/lib/python2.7/dist-packages/backports, where the functools_lru_cache module resides. This is causing the import failure.
+
+Steps to Resolve
+1. Ensure Namespace Path Unification
+Modify the __init__.py in /usr/lib/python2.7/dist-packages/backports to extend the namespace path, allowing Python to look in both /usr/lib/python2.7/dist-packages and /usr/local/lib/python2.7/dist-packages.
+
+Edit /usr/lib/python2.7/dist-packages/backports/__init__.py (or create it if it doesn't exist) and add the following:
+
+python
+Copy code
+__path__ = __import__('pkgutil').extend_path(__path__, __name__)
+Then, verify the namespace paths:
+
+bash
+Copy code
+python -c "import backports; print(backports.__path__)"
+You should see paths to both /usr/lib/python2.7/dist-packages and /usr/local/lib/python2.7/dist-packages.
 
 
 ## **Alternative Manual Setup (Not Recommended)**

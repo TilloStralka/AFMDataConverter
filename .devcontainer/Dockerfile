@@ -14,11 +14,9 @@ RUN ln -sf /usr/bin/python2.7 /usr/bin/python
 
 # Install Python 2.7 versions of the required libraries
 RUN pip install --no-cache-dir \
-    matplotlib==2.1.2 \
     numpy==1.16.2 \
     scipy==1.2.3 \
-    pandas==0.24.2 \
-    plotly==4.14.3
+    pandas==0.24.2 
     
 # Required for gwyutils
 ENV PYTHONPATH "${PYTHONPATH}:/usr/share/gwyddion/pygwy"
