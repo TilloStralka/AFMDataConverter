@@ -4,90 +4,55 @@ AFM Data Processing Utility Functions
 This module contains functions for processing and analyzing AFM (Atomic Force Microscopy) data.
 Functions are organized into the following categories:
 
+-------------------------------------
+
 1. Loading and Saving
-   - File I/O operations
-   - Path handling
-   - Data import/export
+   - Functions for file I/O operations, path handling, and data import/export.
+   - Includes:
+     - `load_data(path, name)`: Loads a `.gwy` file and adds it to the GWY data browser.
+     - `data_save(actcon, fname, path_saving, path_working)`:
+       Saves the active container as a `.gwy` file and manages directory navigation.
 
 2. Data Processing
-   - Data frame selection and manipulation
-   - Edge cutting
-   - Area extraction
-   - Fitting and averaging
+   - Functions for selecting and manipulating data fields from active containers.
+   - Includes:
+     - `select_dataframe(actcon, key)`: Selects a data field based on its key ID 
+       and prepares it for further processing.
+     - `remove(actcon)`: Removes an active container from the GWY data browser 
+       to prevent overload or crashes.
 
-3. Visualization
-   - Color selection
-   - Range setting
-   - Image saving
-   - GIF creation
-   - Histogram generation
-   - Statistical plotting
+3. Helper Functions
+   - Utility functions for timestamp extraction and processing.
+   - Includes:
+     - `get_time(list_of_filenames)`: Extracts timestamps from a list of filenames.
+     - `extract_time(string)`: Extracts timestamp patterns from a single filename string.
 
-4. Data Analysis
-   - Statistical calculations
-   - Line profile extraction
-   - Peak detection
-   - Gaussian fitting
+4. Pipeline Functions
+   - Functions for sorting, organizing, and assembling data from multiple scan types.
+   - Includes:
+     - `sortandlist(path)`: Sorts and organizes files by type (e.g., Topography, Amplitude, etc.)
+       and provides an overview of the files to be processed.
+     - `make_folders(path)`: Creates directories for output storage, specifically for `.gwy` files.
+     - `assemble(n, topo, error, current, amp, phase, time_list, path_new)`:
+       Combines data from various scan types into `.gwy` files for further analysis.
 
-5. Drift Analysis
-   - Drift calculation
-   - Offset determination
-   - Drift list management
-   - Maximum drift detection
-
-6. Helper Functions
-   - String parsing
-   - Time extraction
-   - Color mapping
-   - Array conversion
-
-7. Pipeline Functions
-   - Topography processing pipeline
-   - Current processing pipeline
-   - Error processing pipeline
-   - Data assembly
+-------------------------------------       
 
 Each function is documented with its specific purpose and parameters.
 """
 
-# Importing necessary libraries
-import pandas as pd
-import numpy as np
-import sys
+# Standard Library Imports
 import os
-import shutil #from skimage.feature import peak_local_max, find_peaks
+import sys
+import shutil
 
+# Third-Party Library Imports
+import numpy as np
+import pandas as pd
+import gwy
 
+# Path to the data 
 path = os.path.abspath(os.path.join(os.getcwd(), '..', 'data'))
-
-
-
-###############################################################################
-#   Global Variables    
-###############################################################################
-# Statistics lists for storing measurement values
-statistics_current = []
-statistics_topo = []
-statistics_error = []
-statistics_current_gb = []
-statistics_current_grain = []
-
-# Data frame lists for storing processed data
-dataframes_current = []
-dataframes_topo = []
-dataframes_error = []
-
-# Line scan data lists
-datalines_current = []
-datalines_topo = []
-datalines_distance = []
-
-# Drift tracking variables
-array_old = 0  # Previous array for drift calculation
-array_old2 = 0  # Secondary previous array for drift calculation
-offset_by_drift = (0, 0)  # Cumulative drift offset
-offset_by_drift2 = (0, 0)  # Secondary drift offset
-
 
 ##################################################################################################
 ########################## Functions for Loading and Saving ######################################
@@ -118,98 +83,28 @@ def sortandlist(path):
     print(files_topo)
     print( "Folgende Amplituden Dateien werden bearbeitet:" )
     print(files_amp)
-    print "Folgende Phasen Dateien werden bearbeitet:" 
+    print( "Folgende Phasen Dateien werden bearbeitet:"  )
     print(files_phase)
-    print "Folgende Error Dateien werden bearbeitet:" 
+    print( "Folgende Error Dateien werden bearbeitet:"  )
     print(files_error)
     # Get Number of Elements in List for overall Histogram Plot 
     N = len(files_topo)
-    print "Number of treated elements:"
+    print( "Number of treated elements:" )
     print(N)
     return N, files_topo, files_current, files_amp, files_phase, files_error
 
 def make_folders(path):
-    # Working path in which the pdfs will be saved 
+    # Add a new directory for .gwy files
     try:
-        os.makedirs(path + "PDFs")        
+        os.makedirs(path + "/gwy")        
     except OSError:
         print ("Folder exists already, will be deleted and replaced by new one")
-        shutil.rmtree(path + "PDFs")
-        os.makedirs(path + "PDFs")        
+        shutil.rmtree(path + "/gwy")
+        os.makedirs(path + "/gwy")        
     else:
-        print ("Successfully made new folder") 
-    # Working path in which the jpgs will be saved 
-    try:
-        os.makedirs(path + "gifs")        
-    except OSError:
-        print ("Folder exists already, will be deleted and replaced by new one")
-        shutil.rmtree(path + "gifs")
-        os.makedirs(path + "gifs")        
-    else:
-        print ("Successfully made new folder") 
-    # Working path in which the Histogramms will be saved 
-    try:
-        os.makedirs(path + "Histograms")        
-    except OSError:
-        print ("Folder exists already, will be deleted and replaced by new one")
-        shutil.rmtree(path + "Histograms")
-        os.makedirs(path + "Histograms")
-    else:
-        print ("Successfully made new folder") 
-    # Working path in which the Linescans will be saved 
-    try:
-        os.makedirs(path + "Linescans")        
-    except OSError:
-        print ("Folder exists already, will be deleted and replaced by new one")
-        shutil.rmtree(path + "Linescans")
-        os.makedirs(path + "Linescans")
-    else:
-        print ("Successfully made new folder")         
-    # Working path in which the Statistics csv plus Plots will be saved 
-    try:
-        os.makedirs(path + "Statistics")        
-    except OSError:
-        print ("Folder exists already, will be deleted and replaced by new one")
-        shutil.rmtree(path + "Statistics")
-        os.makedirs(path + "Statistics")
-    else:
-        print ("Successfully deleted and made new")     
-        # Working path in which the fitted data will be stored  
-    try:
-        os.makedirs(path + "Fitted")        
-    except OSError:
-        print ("Folder exists already, will be deleted and replaced by new one")
-        shutil.rmtree(path + "Fitted")
-        os.makedirs(path + "Fitted")
-    else:
-        print ("Successfully deleted and made new")     
-            # Working path in which the stable frame data will be stored  
-    try:
-        os.makedirs(path + "StableFrame")        
-    except OSError:
-        print ("Folder exists already, will be deleted and replaced by new one")
-        shutil.rmtree(path + "StableFrame")
-        os.makedirs(path + "StableFrame")
-    else:
-        print ("Successfully deleted and made new")      
-                # Working path in which the jpgs will be stored  
-    try:
-        os.makedirs(path + "JPGs")        
-    except OSError:
-        print ("Folder exists already, will be deleted and replaced by new one")
-        shutil.rmtree(path + "JPGs")
-        os.makedirs(path + "JPGs")
-    else:
-        print ("Successfully deleted and made new")      
-    path_pdfs = path + "PDFs"
-    path_histo = path + "Histograms"    
-    path_statistics = path + "Statistics"  
-    path_gifs = path + "gifs"
-    path_lines = path + "Linescans"
-    path_fitted = path + "Fitted"
-    path_stableframe = path + "StableFrame"
-    path_jpgs = path + "JPGs"
-    return path_pdfs, path_histo, path_statistics, path_gifs, path_jpgs, path_lines, path_fitted, path_stableframe
+        print ("Successfully made new folder")  
+    path_gwy = path + "/gwy"
+    return path_gwy  # Return only the gwy path for now
 
 def get_time(list_of_filenames):
     """
@@ -259,7 +154,7 @@ def extract_time(string):
             return str(element)
     return None
 
-def assemble(n, topo, error, current, amp, phase, time_list, path_new):
+def assemble(n, topo, error, current, amp, phase, time_list, path, path_newData):
     """
     Assemble multiple scan types into combined .gwy files.
     
@@ -344,31 +239,100 @@ def assemble(n, topo, error, current, amp, phase, time_list, path_new):
     return
 
 def load_data(path, name):
-    print("Es wird gerade folgende Datei bearbeitet:")
+    """
+    Load a .gwy file from the specified directory and add it to the GWY data browser.
+
+    Args:
+        path (str): The directory containing the .gwy file.
+        name (str): The name of the .gwy file to be loaded.
+
+    Returns:
+        tuple: A tuple containing:
+            - ids (list): Identification codes (keys) of the data fields in the active container.
+            - actcon (object): The active container object holding the loaded data.
+    """
+    print("Processing the following file:")
     print(name)
-    
-    
+
+    # Change to the specified directory
     os.chdir(path)
-    #Load data from path
+
+    # Load the .gwy file non-interactively
     actcon = gwy.gwy_file_load(name, gwy.RUN_NONINTERACTIVE)
-    #Load container into browser
+
+    # Add the loaded container to the data browser
     gwy.gwy_app_data_browser_add(actcon)
-    #Ids is identifikation code or key of the active container 
+
+    # Retrieve identification codes (keys) of the active container's data fields
     ids = gwy.gwy_app_data_browser_get_data_ids(actcon)
-    print "With the following ids:"
-    print ids
+    print("Loaded with the following IDs:")
+    print(ids)
+    
     return ids, actcon
 
 
-def select_dataframe(actcon, parameter_name, key):
-    #Select df with key id 0 since the tiff only has one 
-    df = actcon[gwy.gwy_app_get_data_key_for_id(key)] 
-    df_name = actcon["/" + str(key) +"/data/title"]
-    print "The name of the datafield as represented in the gwy container:"
-    print df_name
-    title = df_name + " " + str(parameter_name) + " V"
-    actcon["/" + str(key) +"/data/title"] = title
-    #print actcon["/"key"/data/title"]
-    #Select datafield so that the fit functions (gwy_process_func_run) are not confused
+def select_dataframe(actcon, key):
+    """
+    Select a data field from the active container based on its key ID.
+
+    Args:
+        actcon (object): The active container object holding the data.
+        key (int): The key ID of the data field to be selected.
+
+    Returns:
+        tuple: A tuple containing:
+            - df (object): The data field corresponding to the key ID.
+            - df_name (str): The name of the data field as stored in the container.
+    """
+    # Retrieve the data field using the key ID
+    df = actcon[gwy.gwy_app_get_data_key_for_id(key)]
+    
+    # Get the name of the data field
+    df_name = actcon["/" + str(key) + "/data/title"]
+    print("The name of the data field in the GWY container:")
+    print(df_name)
+
+    # Update the title for clarity
+    title = df_name
+    actcon["/" + str(key) + "/data/title"] = title
+
+    # Select the data field in the browser to ensure compatibility with processing functions
     gwy.gwy_app_data_browser_select_data_field(actcon, key)
-    return df
+    
+    return df, df_name
+
+
+def remove(actcon):
+    """
+    Remove the active container from the GWY data browser to prevent overload or crashes.
+
+    Args:
+        actcon (object): The active container object to be removed.
+    """
+    gwy.gwy_app_data_browser_remove(actcon)
+
+    return
+
+def data_save(actcon, fname, path_saving, path_working):
+    """
+    Save the active container to a new .gwy file with a specified filename.
+
+    Args:
+        actcon (object): The active container object holding the data to be saved.
+        fname (str): The desired filename for the saved file (without extension).
+        path_saving (str): The directory where the file should be saved.
+        path_working (str): The directory to return to after saving.
+
+    Returns:
+        object: The active container object after saving.
+    """
+    # Change to the saving directory
+    os.chdir(path_saving)
+
+    # Save the active container as a .gwy file with a "_fitted" suffix
+    gwy.gwy_file_save(actcon, fname + ".gwy")
+
+    # Change back to the working directory
+    os.chdir(path_working)
+    
+    return actcon
